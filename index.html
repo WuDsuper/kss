@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ฐานข้อมูลตัวชี้วัด</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+  :root{
+    --bg:#f6f5f1; --panel:#ffffff; --ink:#1f2328; --muted:#626a73; --line:#e3e1da;
+    --accent:#1f5f8b; --accent-soft:#e6eff6; --between:#8a5a00; --between-soft:#fbf1dc;
+    --final:#1d6b3a; --final-soft:#e2f2e7; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Sarabun',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.6}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:20px 24px}
+  header h1{margin:0;font-size:1.35rem;font-weight:700}
+  header p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+  .source{font-size:.85rem;color:var(--muted);margin-top:6px}
+  .wrap{display:grid;grid-template-columns:280px 1fr;gap:20px;padding:20px 24px;max-width:1400px;margin:0 auto}
+  aside,.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  aside{align-self:start;position:sticky;top:12px}
+  label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
+  label:first-child{margin-top:0}
+  select,input[type=search]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{flex:1;border:0;background:#fff;padding:7px 2px;font:inherit;font-size:.84rem;white-space:nowrap;cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--accent);color:#fff}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-size:.9rem;cursor:pointer}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px}
+  .stat b{display:block;font-size:1.5rem;font-variant-numeric:tabular-nums}
+  .stat span{color:var(--muted);font-size:.85rem}
+  .toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
+  .muted{color:var(--muted)}
+  .group-title{font-weight:700;margin:18px 0 8px;font-size:1rem;color:var(--accent)}
+  .std{font-size:.88rem;color:var(--muted);margin:-4px 0 8px}
+  .item{display:grid;grid-template-columns:24px 150px 1fr auto;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-bottom:6px}
+  .item:hover{border-color:#c9c6bc}
+  .code{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .badge{display:inline-block;font-size:.78rem;font-weight:600;border-radius:999px;padding:1px 9px;white-space:nowrap}
+  .badge.between{background:var(--between-soft);color:var(--between)}
+  .badge.final{background:var(--final-soft);color:var(--final)}
+  .meta{font-size:.82rem;color:var(--muted)}
+  .link{background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;font-size:.85rem;padding:0;white-space:nowrap}
+  mark{background:#fff3b0;padding:0 1px}
+  .drawer{position:fixed;right:0;top:0;bottom:0;width:min(520px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.06);padding:20px;overflow:auto;transform:translateX(100%);transition:transform .2s}
+  .drawer.open{transform:none}
+  .drawer h2{font-size:1.1rem;margin:0 0 4px}
+  .drawer h3{font-size:.95rem;margin:16px 0 6px}
+  .drawer li{margin-bottom:6px}
+  .close{float:right}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr}aside{position:static}.item{grid-template-columns:24px 1fr}.item .code{grid-column:2}.item .txt{grid-column:2}.item .side{grid-column:2}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"></h1>
+  <p id="subtitle"></p>
+  <div class="source" id="source">กำลังโหลดข้อมูล</div>
+</header>
+
+<div class="wrap">
+  <aside>
+    <label for="q">ค้นหารหัสหรือข้อความ</label>
+    <input type="search" id="q" placeholder="เช่น ค 1.1 ป.4 หรือ เศษส่วน">
+    <label for="subject">กลุ่มสาระการเรียนรู้</label>
+    <select id="subject"></select>
+    <label for="grade">ระดับชั้น</label>
+    <select id="grade"></select>
+    <label for="standard">มาตรฐาน</label>
+    <select id="standard"></select>
+    <label>ประเภทตัวชี้วัด</label>
+    <div class="seg" id="type">
+      <button data-v="" class="on">ทั้งหมด</button>
+      <button data-v="ระหว่างทาง">ระหว่างทาง</button>
+      <button data-v="ปลายทาง">ปลายทาง</button>
+    </div>
+    <label for="groupBy">จัดกลุ่มการแสดงผล</label>
+    <select id="groupBy">
+      <option value="grade">ชั้น และมาตรฐาน</option>
+      <option value="group">กลุ่มตัวชี้วัด (ระหว่างทางสู่ปลายทาง)</option>
+      <option value="none">ไม่จัดกลุ่ม</option>
+    </select>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn" id="reset">ล้างตัวกรอง</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="stats">
+      <div class="stat"><b id="sAll">0</b><span>ตัวชี้วัดที่พบ</span></div>
+      <div class="stat"><b id="sBetween">0</b><span>ตัวชี้วัดระหว่างทาง</span></div>
+      <div class="stat"><b id="sFinal">0</b><span>ตัวชี้วัดปลายทาง</span></div>
+    </div>
+    <div class="toolbar">
+      <div class="muted" id="selInfo">เลือกไว้ 0 รายการ</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="selVisible">เลือกทั้งหมดที่แสดง</button>
+        <button class="btn" id="showSel">ดูรายการที่เลือก</button>
+        <button class="btn" id="csvVisible">ส่งออก CSV (ที่แสดง)</button>
+      </div>
+    </div>
+    <div id="list" class="panel"></div>
+  </main>
+</div>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <button class="btn close" id="closeDrawer">ปิด</button>
+  <div id="drawerBody"></div>
+</div>
+
+<script>
+(function(){
+  const C = window.APP_CONFIG || {};
+  const TH = '๐๑๒๓๔๕๖๗๘๙';
+  const toArabic = s => String(s ?? '').replace(/[๐-๙]/g, d => TH.indexOf(d));
+  const key = s => toArabic(s).replace(/\s+/g,'').toLowerCase();
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k, d){ try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch(e){ return d; } },
+    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  };
+
+  let DB = {subjects:[], strands:[], standards:[], summary:[], indicators:[]};
+  let byCode = {}, stdText = {}, strandName = {};
+  const state = { q:'', subject:'', grade:'', standard:'', type:'', groupBy:'grade' };
+  let selected = new Set(store.get('kss_selected', []));
+  let visible = [];
+
+  $('title').textContent = C.TITLE || 'ฐานข้อมูลตัวชี้วัด';
+  $('subtitle').textContent = C.SUBTITLE || '';
+
+  async function load(){
+    let payload = null, src = '';
+    if (C.API_URL) {
+      try {
+        const r = await fetch(C.API_URL + (C.API_URL.includes('?') ? '&' : '?') + 'action=all');
+        payload = await r.json();
+        if (!payload.ok) throw new Error(payload.error);
+        src = 'ข้อมูลจาก Google Sheet ณ ' + new Date(payload.generated_at).toLocaleString('th-TH');
+      } catch(e) { payload = null; console.warn('อ่าน API ไม่สำเร็จ', e); }
+    }
+    if (!payload) {
+      const r = await fetch(C.FALLBACK_JSON || 'data/indicators.json');
+      payload = await r.json();
+      src = 'ข้อมูลจากไฟล์ในคลัง ' + (payload.generated_at ? 'ปรับปรุงเมื่อ ' + new Date(payload.generated_at).toLocaleString('th-TH') : '');
+      if (payload.sample) src += ' (' + payload.note + ')';
+    }
+    DB = Object.assign(DB, payload.data || {});
+    DB.indicators.forEach(r => {
+      r.grade_order = Number(r.grade_order); r.seq = Number(r.seq); r.strand_no = Number(r.strand_no);
+      r._k = key(r.code + ' ' + r.code_th + ' ' + r.text);
+      byCode[r.code] = r;
+    });
+    DB.standards.forEach(s => stdText[s.standard_code] = s.text);
+    DB.strands.forEach(s => strandName[s.subject_code + '|' + s.strand_no] = s.strand_name);
+    $('source').textContent = src;
+    buildFilters(); render();
+  }
+
+  function subjectOrder(code){ const s = DB.subjects.find(x => x.subject_code === code); return s ? Number(s.subject_order) : 99; }
+  function subjectName(code){ const s = DB.subjects.find(x => x.subject_code === code); return s ? s.subject_name : code; }
+
+  function fillSelect(el, items, allLabel, current){
+    el.innerHTML = '<option value="">' + allLabel + '</option>' + items.map(i => '<option value="' + esc(i.v) + '">' + esc(i.t) + '</option>').join('');
+    el.value = items.some(i => i.v === current) ? current : '';
+  }
+
+  function buildFilters(){
+    const subs = [...new Set(DB.indicators.map(r => r.subject_code))].sort((a,b) => subjectOrder(a) - subjectOrder(b));
+    fillSelect($('subject'), subs.map(s => ({v:s, t:subjectName(s)})), 'ทุกกลุ่มสาระ', state.subject);
+    state.subject = $('subject').value;
+    refreshDependent();
+  }
+
+  function refreshDependent(){
+    const base = DB.indicators.filter(r => !state.subject || r.subject_code === state.subject);
+    const grades = [...new Map(base.map(r => [r.grade, r.grade_order])).entries()].sort((a,b) => a[1] - b[1]);
+    fillSelect($('grade'), grades.map(([g]) => ({v:g, t:g})), 'ทุกชั้น', state.grade);
+    state.grade = $('grade').value;
+    const stds = [...new Set(base.map(r => r.standard_code))].sort((a,b) => key(a).localeCompare(key(b), 'th', {numeric:true}));
+    fillSelect($('standard'), stds.map(s => ({v:s, t:s + (stdText[s] ? ' ' + stdText[s].slice(0,40) + (stdText[s].length > 40 ? '...' : '') : '')})), 'ทุกมาตรฐาน', state.standard);
+    state.standard = $('standard').value;
+  }
+
+  function filtered(){
+    const q = key(state.q);
+    return DB.indicators.filter(r =>
+      (!state.subject || r.subject_code === state.subject) &&
+      (!state.grade || r.grade === state.grade) &&
+      (!state.standard || r.standard_code === state.standard) &&
+      (!state.type || r.type === state.type) &&
+      (!q || r._k.includes(q))
+    ).sort((a,b) => subjectOrder(a.subject_code) - subjectOrder(b.subject_code) || a.grade_order - b.grade_order ||
+      key(a.standard_code).localeCompare(key(b.standard_code), 'th', {numeric:true}) || a.seq - b.seq);
+  }
+
+  function highlight(text){
+    const q = state.q.trim();
+    if (!q || /\d/.test(q)) return esc(text);
+    const i = text.indexOf(q);
+    return i < 0 ? esc(text) : esc(text.slice(0,i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+  }
+
+  function itemHTML(r){
+    const cls = r.type === 'ระหว่างทาง' ? 'between' : 'final';
+    return '<div class="item">' +
+      '<input type="checkbox" data-sel="' + esc(r.code) + '"' + (selected.has(r.code) ? ' checked' : '') + ' aria-label="เลือก ' + esc(r.code) + '">' +
+      '<div class="code">' + esc(r.code_th || r.code) + '<div class="meta">' + esc(subjectName(r.subject_code)) + '</div></div>' +
+      '<div class="txt">' + highlight(r.text) + '<div class="meta">สาระที่ ' + r.strand_no + ' ' + esc(r.strand_name || '') + ' | กลุ่มที่ ' + esc(r.group_no) + '</div></div>' +
+      '<div class="side" style="text-align:right"><span class="badge ' + cls + '">' + esc(r.type) + '</span><br>' +
+      '<button class="link" data-group="' + esc(r.group_key) + '">ดูความเชื่อมโยง</button></div>' +
+    '</div>';
+  }
+
+  function render(){
+    visible = filtered();
+    $('sAll').textContent = visible.length;
+    $('sBetween').textContent = visible.filter(r => r.type === 'ระหว่างทาง').length;
+    $('sFinal').textContent = visible.filter(r => r.type === 'ปลายทาง').length;
+    if (!visible.length) { $('list').innerHTML = '<div class="empty">ไม่พบตัวชี้วัดตามเงื่อนไข</div>'; updateSel(); return; }
+    if (state.groupBy === 'group') {
+      // ให้ตัวชี้วัดในกลุ่มเดียวกันอยู่ติดกัน โดยแสดงระหว่างทางก่อนปลายทาง
+      visible.sort((a,b) => subjectOrder(a.subject_code) - subjectOrder(b.subject_code) || a.grade_order - b.grade_order ||
+        String(a.group_key).localeCompare(String(b.group_key), 'th', {numeric:true}) ||
+        (a.type === b.type ? a.seq - b.seq : a.type === 'ระหว่างทาง' ? -1 : 1));
+    }
+    let html = '', last = '';
+    const many = new Set(visible.map(r => r.subject_code)).size > 1;
+    for (const r of visible) {
+      if (state.groupBy === 'grade') {
+        const h = (many ? subjectName(r.subject_code) + ' ' : '') + 'ชั้น ' + r.grade + '|' + r.standard_code;
+        if (h !== last) {
+          const [g, s] = h.split('|');
+          html += '<div class="group-title">' + esc(g) + ' มาตรฐาน ' + esc(s) + '</div>' + (stdText[s] ? '<div class="std">' + esc(stdText[s]) + '</div>' : '');
+          last = h;
+        }
+      } else if (state.groupBy === 'group' && r.group_key !== last) {
+        html += '<div class="group-title">' + esc(subjectName(r.subject_code)) + ' ชั้น ' + esc(r.grade) + ' กลุ่มที่ ' + esc(r.group_no) + '</div>';
+        last = r.group_key;
+      }
+      html += itemHTML(r);
+    }
+    $('list').innerHTML = html;
+    updateSel();
+  }
+
+  function updateSel(){
+    $('selInfo').textContent = 'เลือกไว้ ' + selected.size + ' รายการ';
+    store.set('kss_selected', [...selected]);
+  }
+
+  function showGroup(gk){
+    const items = DB.indicators.filter(r => r.group_key === gk);
+    if (!items.length) return;
+    const f = items[0];
+    const list = t => items.filter(r => r.type === t).sort((a,b) => a.seq - b.seq)
+      .map(r => '<li><b>' + esc(r.code_th || r.code) + '</b> ' + esc(r.text) + '</li>').join('') || '<li class="muted">ไม่มี</li>';
+    $('drawerBody').innerHTML =
+      '<h2>' + esc(subjectName(f.subject_code)) + ' ชั้น ' + esc(f.grade) + ' กลุ่มที่ ' + esc(f.group_no) + '</h2>' +
+      '<div class="muted">สาระที่ ' + f.strand_no + ' ' + esc(f.strand_name || '') + '</div>' +
+      '<h3>ตัวชี้วัดระหว่างทาง (ประเมินเพื่อพัฒนา)</h3><ul>' + list('ระหว่างทาง') + '</ul>' +
+      '<h3>ตัวชี้วัดปลายทาง (ประเมินเพื่อตัดสินผล)</h3><ul>' + list('ปลายทาง') + '</ul>';
+    openDrawer();
+  }
+
+  function showSelected(){
+    const items = [...selected].map(c => byCode[c]).filter(Boolean)
+      .sort((a,b) => subjectOrder(a.subject_code) - subjectOrder(b.subject_code) || a.grade_order - b.grade_order || a.seq - b.seq);
+    $('drawerBody').innerHTML = '<h2>รายการที่เลือกไว้ ' + items.length + ' รายการ</h2>' +
+      '<div class="muted">ใช้เป็นร่างสำหรับกำหนดโครงสร้างรายวิชาหรือหน่วยการเรียนรู้</div>' +
+      '<div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap">' +
+        '<button class="btn primary" id="csvSel"' + (items.length ? '' : ' disabled') + '>ส่งออก CSV</button>' +
+        '<button class="btn" id="copySel"' + (items.length ? '' : ' disabled') + '>คัดลอกเป็นข้อความ</button>' +
+        '<button class="btn" id="clearSel"' + (items.length ? '' : ' disabled') + '>ล้างรายการ</button></div>' +
+      '<ul>' + items.map(r => '<li><b>' + esc(r.code_th || r.code) + '</b> ' + esc(r.text) + ' <span class="badge ' + (r.type === 'ระหว่างทาง' ? 'between' : 'final') + '">' + esc(r.type) + '</span></li>').join('') + '</ul>';
+    openDrawer();
+    const csvBtn = $('csvSel'); if (csvBtn) csvBtn.onclick = () => downloadCSV(items, 'ตัวชี้วัดที่เลือก.csv');
+    const cp = $('copySel'); if (cp) cp.onclick = () => {
+      const t = items.map(r => (r.code_th || r.code) + ' ' + r.text + ' (' + r.type + ')').join('\n');
+      navigator.clipboard?.writeText(t).then(() => cp.textContent = 'คัดลอกแล้ว', () => cp.textContent = 'คัดลอกไม่สำเร็จ');
+    };
+    const cl = $('clearSel'); if (cl) cl.onclick = () => { selected.clear(); render(); showSelected(); };
+  }
+
+  function downloadCSV(rows, name){
+    const cols = ['code_th','code','subject_name','grade','strand_no','strand_name','standard_code','type','group_no','text'];
+    const head = ['รหัส','รหัส (เลขอารบิก)','กลุ่มสาระ','ชั้น','สาระที่','ชื่อสาระ','มาตรฐาน','ประเภท','กลุ่มที่','ตัวชี้วัด'];
+    const q = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
+    const csv = '﻿' + [head.map(q).join(',')].concat(rows.map(r => cols.map(c => q(c === 'subject_name' ? (r.subject_name || subjectName(r.subject_code)) : r[c])).join(','))).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+    a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  function openDrawer(){ $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden','false'); }
+  function closeDrawer(){ $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden','true'); }
+
+  let t;
+  $('q').addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => { state.q = e.target.value; render(); }, 150); });
+  $('subject').onchange = e => { state.subject = e.target.value; refreshDependent(); render(); };
+  $('grade').onchange = e => { state.grade = e.target.value; render(); };
+  $('standard').onchange = e => { state.standard = e.target.value; render(); };
+  $('groupBy').onchange = e => { state.groupBy = e.target.value; render(); };
+  $('type').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...$('type').children].forEach(x => x.classList.toggle('on', x === b));
+    state.type = b.dataset.v; render();
+  };
+  $('reset').onclick = () => {
+    Object.assign(state, {q:'', subject:'', grade:'', standard:'', type:''});
+    $('q').value = ''; [...$('type').children].forEach((x,i) => x.classList.toggle('on', i === 0));
+    buildFilters(); render();
+  };
+  $('list').addEventListener('change', e => {
+    const c = e.target.dataset.sel; if (!c) return;
+    e.target.checked ? selected.add(c) : selected.delete(c); updateSel();
+  });
+  $('list').addEventListener('click', e => { const g = e.target.dataset.group; if (g) showGroup(g); });
+  $('selVisible').onclick = () => { visible.forEach(r => selected.add(r.code)); render(); };
+  $('showSel').onclick = showSelected;
+  $('csvVisible').onclick = () => downloadCSV(visible, 'ตัวชี้วัด.csv');
+  $('closeDrawer').onclick = closeDrawer;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+  load().catch(e => { $('source').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + e.message; });
+})();
+</script>
+</body>
+</html>
