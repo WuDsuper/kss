@@ -5,7 +5,7 @@
  */
 
 var CONFIG = {
-  SOURCE_FOLDER_ID: '1VYwzUlIhytO_xHtpQf4-z8ddvmqCxTFT',
+  SOURCE_FOLDER_ID: '',
   SHEET: {
     INDICATORS: 'indicators',
     STANDARDS: 'standards',
